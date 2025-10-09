@@ -23,7 +23,10 @@ import {
   limitsAtom,
 } from '../../stores/filters';
 import { FilterMode } from '../../types';
-import { generateCompleteHTML } from '../../utils/utils';
+import {
+  generateCompleteHTML,
+  generateAudioTranscription,
+} from '../../utils/utils';
 
 function Sidebar() {
   const [isMenuOpen, setIsMenuOpen] = useAtom(isMenuOpenAtom);
@@ -68,24 +71,62 @@ function Sidebar() {
         return;
       }
 
-      const htmlContent = await generateCompleteHTML(messages, extractedFile, activeUser);
+      const htmlContent = await generateCompleteHTML(
+        messages,
+        extractedFile,
+        activeUser,
+      );
       const fileName = (window as any).uploadedFileName || 'chat.html';
-      
+
       // Criar blob e fazer download
       const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
       const url = URL.createObjectURL(blob);
-      
+
       const link = document.createElement('a');
       link.href = url;
-      link.download = fileName.endsWith('.html') ? fileName : `${fileName}.html`;
+      link.download = fileName.endsWith('.html')
+        ? fileName
+        : `${fileName}.html`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Erro ao gerar HTML:', error);
       alert('Erro ao gerar arquivo HTML');
+    }
+  };
+
+  const handleSaveAudioTranscription = () => {
+    try {
+      if (!messages || messages.length === 0) {
+        alert('Nenhuma mensagem para exportar');
+        return;
+      }
+
+      const transcription = generateAudioTranscription(messages);
+      const fileName = (window as any).uploadedFileName || 'chat';
+      const transcriptionFileName =
+        fileName.replace(/\.html$/, '').replace(/\.txt$/, '') + '_audios.txt';
+
+      // Criar blob e fazer download
+      const blob = new Blob([transcription], {
+        type: 'text/plain;charset=utf-8',
+      });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = transcriptionFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erro ao gerar transcrição de áudios:', error);
+      alert('Erro ao gerar arquivo de transcrição');
     }
   };
 
@@ -168,6 +209,15 @@ function Sidebar() {
                 type="button"
                 value="Salvar HTML Completo"
                 onClick={handleSaveCompleteHTML}
+                disabled={!messages || messages.length === 0}
+              />
+            </S.Field>
+
+            <S.Field>
+              <S.Submit
+                type="button"
+                value="Exportar Lista de Áudios"
+                onClick={handleSaveAudioTranscription}
                 disabled={!messages || messages.length === 0}
               />
             </S.Field>
